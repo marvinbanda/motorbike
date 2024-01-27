@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Battery voltage over time</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+
+        body {
+
+            background-color: #111; /* Dark background color */
+
+            color: #fff; /* Light text color */
+
+            font-family: 'Arial', sans-serif;
+
+            margin: 0;
+
+            padding: 0;
+
+        }
+
+
+        header {
+
+            background-color: #1a237e; /* Dark blue header background color */
+
+            color: #fff; /* Light text color */
+
+            padding: 10px;
+
+            text-align: center;
+
+        }
+
+
+        #buttonContainer {
+
+            background-color: #1a237e; /* Dark blue button container background color */
+
+            padding: 10px;
+
+            text-align: center;
+
+        }
+
+
+        .chartButton {
+
+            background-color: #283593; /* Darker blue button background color */
+
+            color: #fff; /* Light text color */
+
+            padding: 10px;
+
+            margin: 5px;
+
+            border: none;
+
+            cursor: pointer;
+
+            border-radius: 5px;
+
+        }
+
+
+        .chartButton:hover {
+
+            background-color: #303f9f; /* Darker blue on hover */
+
+        }
+
+
+        .channelContainer {
+
+            box-sizing: border-box;
+
+            border: 1px solid #ccc;
+
+            margin-bottom: 10px;
+
+            width: 100%;
+
+            display: flex;
+
+            flex-direction: row;
+
+            background-color: #1a237e; /* Dark blue channel container background color */
+
+            padding: 10px;
+
+        }
+
+
+        .mapContainer,
+
+        .chartContainer {
+
+            height: 400px;
+
+            flex: 1;
+
+        }
+
+    </style>
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<style>
+
+    #map {
+
+        height: 500px;
+       width : 1400px;
+
+    }
+
+</style>
+
+
+</head>
+
+
+
+<body>
+
+    <header>
+
+        <h1>Mobile Units</h1>
+
+        <i class="fas fa-chart-line"></i>
+
+        <div id="dateTime"></div>
+
+    </header>
+
+    <div id="buttonContainer">
+
+        <!-- Updated button elements with specific Channel names and IDs -->
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 1', 2346960)">Mobile Airqo 1</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 2', 2346964)">Mobile Airqo 2</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 3', 2346967)">Mobile Airqo 3</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 4', 2346969)">Mobile Airqo 4</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 5', 2346963)">Mobile Airqo 5</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 6', 2346968)">Mobile Airqo 6</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 7', 2346974)">Mobile Airqo 7</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 8', 2346988)">Mobile Airqo 8</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 09', 2346962)">Mobile Airqo 09</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 10', 2346978)">Mobile Airqo 10</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 11', 2346993)">Mobile Airqo 11</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 12', 2346999)">Mobile Airqo 12</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 13', 2346986)">Mobile Airqo 13</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 14', 2347051)">Mobile Airqo 14</button>
+
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 15', 2347059)">Mobile Airqo 15</button>
+
+        <!-- Add the rest of the buttons similarly -->
+
+        <button onclick="closeCharts()">Close Charts</button>
+
+    </div>
+
+    <div id="contentContainer">
+
+        <!-- Content will be dynamically added here -->
+
+    </div>
+
+    <script>
+
+        function addChannel(channelName, channelID) {
+
+            // Create a new channel container
+
+            const channelContainer = document.createElement('div');
+
+            channelContainer.classList.add('channelContainer');
+
+            channelContainer.id = 'channelContainer' + channelID; // Use a unique ID for each channel container
+
+
+            document.getElementById('contentContainer').appendChild(channelContainer);
+
+
+            // Plot the chart and map for the new channel
+
+            plotThingSpeakChart(channelName, channelID);
+
+        }
+
+
+        function plotThingSpeakChart(channelName, channelID, numDataPoints = 10) {
+
+            // Fetch data from ThingSpeak
+
+            fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?results=${numDataPoints}`)
+
+                .then(response => response.json())
+
+                .then(data => {
+
+                    // Extract timestamp, latitude, and longitude data from fetched data
+
+                    const timestamps = data.feeds.map(feed => new Date(feed.created_at).toLocaleString());
+
+                    const coordinates = data.feeds.map(feed => [parseFloat(feed.field5), parseFloat(feed.field6)]);
+
+
+                    // Extract data from Field 7
+
+                    const field7Data = data.feeds.map(feed => parseFloat(feed.field7));
+
+
+                    // Check if the coordinates and field 7 data are valid
+
+                    if (timestamps.length > 0 && coordinates.every(coord => !isNaN(coord[0]) && !isNaN(coord[1])) && field7Data.every(value => !isNaN(value))) {
+
+                        // Create a channel container
+
+                        const channelContainer = document.getElementById('channelContainer' + channelID);
+
+
+                        // Create a map container
+
+                        const mapContainer = document.createElement('div');
+
+                        mapContainer.classList.add('mapContainer');
+
+                        mapContainer.id = 'mapContainer' + channelID; // Use a unique ID for each map container
+
+                        channelContainer.appendChild(mapContainer);
+
+
+                        const map = L.map('mapContainer' + channelID).setView(coordinates[0], 13);
+
+
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+                            attribution: '© OpenStreetMap contributors'
+
+                        }).addTo(map);
+
+
+                        // Add markers to the map for each coordinate
+
+                        coordinates.forEach(coord => {
+
+                            L.marker(coord).addTo(map);
+
+                        });
+
+
+                        // Create a chart container
+
+                        const chartContainer = document.createElement('div');
+
+                        chartContainer.classList.add('chartContainer');
+
+                        chartContainer.id = 'chartContainer' + channelID; // Use a unique ID for each chart container
+
+                        channelContainer.appendChild(chartContainer);
+
+
+                        // Plot the data from Field 7 using Plotly
+
+                        const chartData = [{
+
+                            x: timestamps,
+
+                            y: field7Data,
+
+                            type: 'line',
+
+                            marker: { color: 'blue' },
+
+                        }];
+
+                        const layout = {
+
+                            title: `ThingSpeak Chart for ${channelName} - Field 7`,
+
+                            xaxis: { title: 'Date and Time' },
+
+                            yaxis: { title: `Field 7 Value` },
+
+                        };
+
+
+                        Plotly.newPlot(chartContainer, chartData, layout);
+
+                    } else {
+
+                        console.log(`Invalid data for ${channelName}`);
+
+                    }
+
+                })
+
+                .catch(error => console.error('Error fetching data:', error));
+
+        }
+
+
+        function closeCharts() {
+
+            // Remove all chart and map elements from contentContainer
+
+            var contentContainer = document.getElementById('contentContainer');
+
+            while (contentContainer.firstChild) {
+
+                contentContainer.removeChild(contentContainer.firstChild);
+
+            }
+
+        }
+
+    </script>
+
+
+
+    <!-- ... (Your existing body content) ... -->
+
+
+    <div id="buttonContainer">
+
+        <!-- Existing buttons ... -->
+
+        <button onclick="closeCharts()">Close Charts</button>
+
+        <button onclick="plotAllPoints()">Plot All Points</button> <!-- New button for plotting all points -->
+
+    </div>
+
+
+    <!-- ... (Your existing script tag) ... -->
+
+
+    <script>
+
+        // ... (Your existing JavaScript functions) ...
+
+
+        function plotAllPoints() {
+
+            // Load Leaflet library
+
+            const leafletScript = document.createElement('script');
+
+            leafletScript.src = 'https://unpkg.com/leaflet/dist/leaflet.js';
+
+            leafletScript.onload = () => {
+
+                // Fetch data for all channels
+
+                const channelIDs = [2346960, 2346964, 2346967, 2346969, 2346963, 2346968, 2346974, 2346988, 2346962, 2346978, 2346993, 2346999, 2346986, 2347051, 2347059];
+
+                const promises = channelIDs.map(channelID =>
+
+                    fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?results=1`)
+
+                        .then(response => response.json())
+
+                );
+
+
+                Promise.all(promises)
+
+                    .then(responses => {
+
+                        // Extract coordinates from each channel's data
+
+                        const allCoordinates = responses.map(data => {
+
+                            const feed = data.feeds[0];
+
+                            return [parseFloat(feed.field5), parseFloat(feed.field6)];
+
+                        });
+
+
+                        // Check if all coordinates are valid
+
+                        if (allCoordinates.every(coord => !isNaN(coord[0]) && !isNaN(coord[1]))) {
+
+                            // Create a map container for all points
+
+                            const mapContainer = document.createElement('div');
+
+                            mapContainer.classList.add('mapContainer');
+
+                            mapContainer.id = 'mapContainerAllPoints';
+
+                            document.getElementById('contentContainer').appendChild(mapContainer);
+
+
+                            const map = L.map('mapContainerAllPoints').setView(allCoordinates[0], 13);
+
+
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+                                attribution: '© OpenStreetMap contributors'
+
+                            }).addTo(map);
+
+
+                            // Add markers to the map for each coordinate
+
+                            allCoordinates.forEach(coord => {
+
+                                L.marker(coord).addTo(map);
+
+                            });
+
+                        } else {
+
+                            console.log('Invalid coordinates for plotting all points');
+
+                        }
+
+                    })
+
+                    .catch(error => console.error('Error fetching data for plotting all points:', error));
+
+            };
+
+
+            document.head.appendChild(leafletScript);
+
+        }
+
+    </script>
+
+
+
+
+
+
+
+
+<div id="map"></div>
+
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<script>
+
+    // Initialize the map
+
+    var map = L.map('map').setView([0, 0], 2);
+
+
+    // Add the base map layers
+
+    var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+        attribution: '© OpenStreetMap contributors'
+
+    });
+
+
+    var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+
+        maxZoom: 20,
+
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+
+        attribution: '© Google contributors'
+
+    });
+
+
+    var baseMaps = {
+
+        "Street Map": streetLayer,
+
+        "Satellite Map": satelliteLayer
+
+    };
+
+
+    streetLayer.addTo(map); // Default layer
+
+
+    // Add the satellite view toggle control
+
+    L.control.layers(baseMaps).addTo(map);
+
+
+    // Define ThingSpeak channels and their locations
+
+    const channels = [
+
+        { name: 'Mobile Airqo 2', channelID: 2346964, latField: 5, lngField: 6 },
+
+        { name: 'Mobile Airqo 3', channelID: 2346967, latField: 5, lngField: 6 },
+
+        { name: 'Mobile Airqo 4', channelID: 2346969, latField: 5, lngField: 6 },
+
+        { name: 'Mobile Airqo 5', channelID: 2346963, latField: 5, lngField: 6 }
+
+    ];
+
+
+    // Loop through channels and add markers to the map
+
+    channels.forEach(channel => {
+
+        // Fetch data from ThingSpeak
+
+        fetch(`https://api.thingspeak.com/channels/${channel.channelID}/feeds/last.json`)
+
+            .then(response => response.json())
+
+            .then(data => {
+
+                const latitude = parseFloat(data[`field${channel.latField}`]);
+
+                const longitude = parseFloat(data[`field${channel.lngField}`]);
+
+
+                // Check if the latitude and longitude are valid
+
+                if (!isNaN(latitude) && !isNaN(longitude)) {
+
+                    // Create a marker for each channel
+
+                    L.marker([latitude, longitude]).addTo(map)
+
+                        .bindPopup(`<strong>${channel.name}</strong>`)
+
+                        .openPopup();
+
+                }
+
+            })
+
+            .catch(error => console.error(`Error fetching data for ${channel.name}: ${error}`));
+
+    });
+
+</script>
+
+
+
+
+<a style="padding: 10px; background-color: #3498db; color: white; text-decoration: none; border: none; border-radius: 5px; cursor: pointer;" href="http://13.36.174.186/report.html" target="_blank">Open Report</a>
+
+
+
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+

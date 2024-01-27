@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Uptime</title>
+
+    <style>
+
+        body{
+
+            background-color: rgba(42, 165, 149, 0.562);  
+
+        }
+
+        #results-container {
+
+            height: 400px; /* Set the desired height for the scrollable box */
+
+            overflow: auto;
+
+            background-color: rgba(197, 247, 157, 0.562);
+
+        }
+
+
+        #pie-chart-container {
+
+            
+
+            display: flex;
+
+            align-items: center;
+
+            margin-top: 80px;
+
+            margin-bottom: 200px;
+
+            height: 300px
+
+        }
+
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+    <h1>Uptime Summary</h1>
+
+    
+
+    <div id="results-container">
+
+        <div id="results"></div>
+
+    </div>
+
+
+    <div id="pie-chart-container">
+
+        <canvas id="pie-chart"></canvas>
+
+        <div id="count-summary">
+
+            <h2>Summary</h2>
+
+            <p>Online Channels: <span id="online-count">0</span></p>
+
+            <p>Offline Channels: <span id="offline-count">0</span></p>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        // Replace these values with your ThingSpeak channel names and IDs
+
+        const channels = [
+
+            { name: 'Mobile Airqo 1', id: 2346960 },
+
+            { name: 'Mobile Airqo 2', id: 2346964 },
+
+            { name: 'Mobile Airqo 3', id: 2346967 },
+
+            { name: 'Mobile Airqo 4', id: 2346969 },
+
+            { name: 'Mobile Airqo 5', id: 2346963 },
+
+            { name: 'Mobile Airqo 6', id: 2346968 },
+
+            { name: 'Mobile Airqo 7', id: 2346974 },
+
+            { name: 'Mobile Airqo 8', id: 2346988 },
+
+            { name: 'Mobile Airqo 9', id: 2346962 },
+
+            { name: 'Mobile Airqo 10', id: 2346978 },
+
+            { name: 'Mobile Airqo 11', id: 2346993 },
+
+            { name: 'Mobile Airqo 12', id: 2346999 },
+
+            { name: 'Mobile Airqo 13', id: 2346986 },
+
+            { name: 'Mobile Airqo 14', id: 2347051 },
+
+            { name: 'Mobile Airqo 15', id: 2347059 }
+
+        ];
+
+
+        // Number of entries to retrieve
+
+        const num_entries = 2;
+
+
+        // Variables to store counts
+
+        let onlineCount = 0;
+
+        let offlineCount = 0;
+
+
+        // Fetch data for each channel
+
+        Promise.all(channels.map(channel => fetch(`https://api.thingspeak.com/channels/${channel.id}/feeds.json?results=${num_entries}`)
+
+            .then(response => {
+
+                if (!response.ok) {
+
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+
+                }
+
+                return response.json();
+
+            })
+
+            .then(data => {
+
+                let lastSeen, timeDifferenceHours;
+
+
+                if (data.feeds.length > 0) {
+
+                    lastSeen = new Date(data.feeds[0].created_at);
+
+                    timeDifferenceHours = (new Date(data.feeds[1].created_at) - lastSeen) / (1000 * 60 * 60);
+
+                } else {
+
+                    // Set default values if no data is returned
+
+                    lastSeen = new Date(0); // Default to the epoch
+
+                    timeDifferenceHours = -1; // Indicate no data
+
+                }
+
+
+                // Determine online or offline status
+
+                const isOnline = timeDifferenceHours >= 0 && timeDifferenceHours < 12;
+
+
+                // Update counts
+
+                if (isOnline) {
+
+                    onlineCount++;
+
+                } else {
+
+                    offlineCount++;
+
+                }
+
+
+                return {
+
+                    channelName: channel.name,
+
+                    lastSeen: lastSeen,
+
+                    timeDifferenceHours: timeDifferenceHours,
+
+                    isOnline: isOnline
+
+                };
+
+            })
+
+            .catch(error => {
+
+                console.error(`Error fetching data for ${channel.name}:`, error);
+
+                return {
+
+                    channelName: channel.name,
+
+                    isOnline: false
+
+                };
+
+            })
+
+        ))
+
+        .then(channelData => {
+
+            const resultsDiv = document.getElementById('results');
+
+
+            // Display results for each channel
+
+            channelData.forEach(channel => {
+
+                // Determine the color based on online or offline status
+
+                const fontColor = channel.isOnline ? 'black' : 'red';
+
+
+                resultsDiv.innerHTML += `
+
+                    <h2 style="color: ${fontColor}">${channel.channelName}</h2>
+
+                    <p style="color: ${fontColor}">Last seen: ${channel.lastSeen}</p>
+
+                    <p style="color: ${fontColor}">Last seen in hours: ${channel.timeDifferenceHours >= 0 ? channel.timeDifferenceHours.toFixed(2) + ' hours' : 'No data'}</p>
+
+                    <p style="color: ${fontColor}">Status: ${channel.isOnline ? 'Online' : 'Offline'}</p>
+
+                    <hr>
+
+                `;
+
+            });
+
+
+            // Display counts at the end
+
+            const onlineCountSpan = document.getElementById('online-count');
+
+            const offlineCountSpan = document.getElementById('offline-count');
+
+
+            onlineCountSpan.textContent = onlineCount;
+
+            offlineCountSpan.textContent = offlineCount;
+
+
+            // Create a pie chart
+
+            const pieChartCanvas = document.getElementById('pie-chart');
+
+            const pieChartCtx = pieChartCanvas.getContext('2d');
+
+
+            const pieChartData = {
+
+                labels: ['Online', 'Offline'],
+
+                datasets: [{
+
+                    data: [onlineCount, offlineCount],
+
+                    backgroundColor: ['green', 'red']
+
+                }]
+
+            };
+
+
+            new Chart(pieChartCtx, {
+
+                type: 'pie',
+
+                data: pieChartData
+
+            });
+
+        })
+
+        .catch(error => console.error('Error fetching data:', error));
+
+    </script>
+
+</body>
+
+</html>
+
