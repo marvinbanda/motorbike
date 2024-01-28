@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battery voltage over time</title>
+
+    <!-- Leaflet CSS and JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <!-- Plotly JS -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        body {
+            background-color: #111;
+            color: #b38787;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #1a237e;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+
+        #buttonContainer,
+        #contentContainer {
+            background-color: #1a237e;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .chartButton {
+            background-color: #283593;
+            color: #fff;
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .chartButton:hover {
+            background-color: #303f9f;
+        }
+
+        .channelContainer {
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            background-color: #1a237e;
+            padding: 10px;
+        }
+
+        .mapContainer,
+        .chartContainer {
+            height: 400px;
+            flex: 1;
+        }
+
+        #map {
+            height: 500px;
+            width: 1400px;
+        }
+    </style>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+</head>
+
+<body>
+
+    <header>
+        <h1>Mobile Units</h1>
+        <i class="fas fa-chart-line"></i>
+        <div id="dateTime"></div>
+    </header>
+
+    <div id="buttonContainer">
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 1', 2346960)">Mobile Airqo 1</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 2', 2346964)">Mobile Airqo 2</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 3', 2346967)">Mobile Airqo 3</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 4', 2346969)">Mobile Airqo 4</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 5', 2346963)">Mobile Airqo 5</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 6', 2346968)">Mobile Airqo 6</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 7', 2346974)">Mobile Airqo 7</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 8', 2346988)">Mobile Airqo 8</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 9', 2346962)">Mobile Airqo 9</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 10', 2346978)">Mobile Airqo 10</button>
+        <button class="chartButton" onclick="addChannel('Mobile Airqo 11', 2346993)">Mobile Airqo 11</button>
+<button class="chartButton" onclick="addChannel('Mobile Airqo 12', 2346999)">Mobile Airqo 12</button>
+<button class="chartButton" onclick="addChannel('Mobile Airqo 13', 2346986)">Mobile Airqo 13</button>
+<button class="chartButton" onclick="addChannel('Mobile Airqo 14', 2347051)">Mobile Airqo 14</button>
+<button class="chartButton" onclick="addChannel('Mobile Airqo 15', 2347059)">Mobile Airqo 15</button>
+
+        
+        <button onclick="closeCharts()">Close Charts</button>
+        <button onclick="plotAllPoints()">Plot All Points</button>
+    </div>
+
+    <div id="contentContainer">
+        <!-- Content will be dynamically added here -->
+    </div>
+
+    <script>
+        function addChannel(channelName, channelID) {
+            const channelContainer = document.createElement('div');
+            channelContainer.classList.add('channelContainer');
+            channelContainer.id = 'channelContainer' + channelID;
+
+            document.getElementById('contentContainer').appendChild(channelContainer);
+
+            plotThingSpeakChart(channelName, channelID);
+        }
+
+        function plotThingSpeakChart(channelName, channelID, numDataPoints = 10) {
+    fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?results=${numDataPoints}`)
+        .then(response => response.json())
+        .then(data => {
+            const timestamps = data.feeds.map(feed => new Date(feed.created_at).toLocaleString());
+            const field1Data = data.feeds.map(feed => parseFloat(feed.field1));
+            const field2Data = data.feeds.map(feed => parseFloat(feed.field2));
+            const coordinates = data.feeds.map(feed => [parseFloat(feed.field5), parseFloat(feed.field6)]);
+
+            if (timestamps.length > 0 && field1Data.every(value => !isNaN(value)) && field2Data.every(value => !isNaN(value))) {
+                const channelContainer = document.getElementById('channelContainer' + channelID);
+
+                const mapContainer = document.createElement('div');
+                mapContainer.classList.add('mapContainer');
+                mapContainer.id = 'mapContainer' + channelID;
+                channelContainer.appendChild(mapContainer);
+
+                const map = L.map('mapContainer' + channelID).setView(coordinates[0], 13);
+
+                const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                });
+
+                const satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: '© Google contributors'
+                });
+
+                const baseMaps = {
+                    "Street Map": streetLayer,
+                    "Satellite Map": satelliteLayer
+                };
+
+                streetLayer.addTo(map);
+
+                L.control.layers(baseMaps).addTo(map);
+
+                coordinates.forEach((coord, index) => {
+                    if (!isNaN(coord[0]) && !isNaN(coord[1]) && coord[0] !== 0 && coord[1] !== 0) {
+                        const marker = L.marker(coord).addTo(map);
+
+                        // Embed channel name, field 1, and field 2 values in the marker popup
+                        const field1Value = field1Data[index];
+                        const field2Value = field2Data[index];
+                        marker.bindPopup(`<b>${channelName}</b><br>Field 1: ${field1Value}<br>Field 2: ${field2Value}`).openPopup();
+                    }
+                });
+
+                const chartContainer = document.createElement('div');
+                chartContainer.classList.add('chartContainer');
+                chartContainer.id = 'chartContainer' + channelID;
+                channelContainer.appendChild(chartContainer);
+
+                const chartData = [
+                    {
+                        x: timestamps,
+                        y: field1Data,
+                        type: 'line',
+                        name: 'Field 1',
+                        marker: { color: 'blue' },
+                    },
+                    {
+                        x: timestamps,
+                        y: field2Data,
+                        type: 'line',
+                        name: 'Field 2',
+                        marker: { color: 'red' },
+                    }
+                ];
+
+                const layout = {
+                    title: `ThingSpeak Chart for ${channelName} - Fields 1 and 2`,
+                    xaxis: { title: 'Date and Time' },
+                    yaxis: { title: 'Field Value' },
+                };
+
+                Plotly.newPlot(chartContainer, chartData, layout);
+            } else {
+                console.log(`Invalid data for ${channelName}`);
+            }
+        })
+        .catch(error => console.error('Error fetching data:', error));
+}
+
+
+        function closeCharts() {
+            var contentContainer = document.getElementById('contentContainer');
+            while (contentContainer.firstChild) {
+                contentContainer.removeChild(contentContainer.firstChild);
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+        function plotAllPoints() {
+    const leafletScript = document.createElement('script');
+    leafletScript.src = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js';
+    leafletScript.onload = () => {
+
+        const channelIDs = [
+  2346960, 2346964, 2346967, 2346969, 2346963, 2346968,
+  2346974, 2346988, 2346962, 2346978, 2346993, 2346999,
+  2346986, 2347051, 2347059
+];
+
+const channelNames = [
+  'Mobile Airqo 1', 'Mobile Airqo 2', 'Mobile Airqo 3', 'Mobile Airqo 4',
+  'Mobile Airqo 5', 'Mobile Airqo 6', 'Mobile Airqo 7', 'Mobile Airqo 8',
+  'Mobile Airqo 09', 'Mobile Airqo 10', 'Mobile Airqo 11', 'Mobile Airqo 12',
+  'Mobile Airqo 13', 'Mobile Airqo 14', 'Mobile Airqo 15'
+];
+
+        const promises = channelIDs.map((channelID, index) =>
+            fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?results=1`)
+                .then(response => response.json())
+                .then(data => {
+                    const feed = data.feeds[0];
+                    return {
+                        coordinates: [parseFloat(feed.field5), parseFloat(feed.field6)],
+                        field7: parseFloat(feed.field7)
+                    };
+                })
+                .catch(error => {
+                    console.error(`Error fetching data for Channel ${index + 1}:`, error);
+                    return { coordinates: [0, 0], field7: NaN }; // Return default values in case of an error
+                })
+        );
+
+        Promise.all(promises)
+            .then(results => {
+                if (results.every(result => !isNaN(result.coordinates[0]) && !isNaN(result.coordinates[1]))) {
+                    const mapContainer = document.createElement('div');
+                    mapContainer.classList.add('mapContainer');
+                    mapContainer.id = 'mapContainerAllPoints';
+                    document.getElementById('contentContainer').appendChild(mapContainer);
+
+                    const map = L.map('mapContainerAllPoints').setView(results[0].coordinates, 13);
+
+                    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    });
+
+                    const satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                        maxZoom: 20,
+                        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                        attribution: '© Google contributors'
+                    });
+
+                    const baseMaps = {
+                        "Street Map": streetLayer,
+                        "Satellite Map": satelliteLayer
+                    };
+
+                    streetLayer.addTo(map);
+
+                    L.control.layers(baseMaps).addTo(map);
+
+                    results.forEach((result, index) => {
+                        const { coordinates, field7 } = result;
+                        const channelName = channelNames[index];
+
+                        if (!isNaN(coordinates[0]) && !isNaN(coordinates[1]) && coordinates[0] !== 0 && coordinates[1] !== 0) {
+                            const marker = L.marker(coordinates).addTo(map);
+
+                            // Embed channel name and field 7 value in the marker popup
+                            marker.bindPopup(`<b>${channelName}</b><br>Field 7: ${isNaN(field7) ? 'Unknown' : field7}`).openPopup();
+                        }
+                    });
+                } else {
+                    console.log('Invalid coordinates for plotting all points');
+                }
+            })
+            .catch(error => console.error('Error fetching data for plotting all points:', error));
+    };
+
+    document.head.appendChild(leafletScript);
+}
+
+    </script>
+
+    <style>
+        .red-marker {
+            background-color: red;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+    </style>
+
+    <a style="padding: 10px; background-color: #3498db; color: white; text-decoration: none; border: none; border-radius: 5px; cursor: pointer;" href=https://www.youtube.com/watch?v=9QpJNIfBJyE&t=64s"" target="_blank">Reports</a>
+    <a style="padding: 10px; background-color: #3498db; color: white; text-decoration: none; border: none; border-radius: 5px; cursor: pointer;" href=https://docs.google.com/spreadsheets/d/1odszbPBH9M6XKRnRC1lfvDopXDEtXDsWsM2DvbreaI8/edit#gid=0"" target="_blank">Maintinace</a>
+</body>
+
+</html>
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Last Online Time</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #ebecf5;
+        }
+        p {
+            margin-bottom: 20px;
+            color: #777;
+        }
+        .offline {
+            color: red;
+        }
+        .online {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Online Time</h1>
+    <p id="lastUpdateTime"></p>
+    <p id="statusSummary"></p>
+
+    <script>
+        var channels = [
+            { name: 'Mobile Airqo 1', id: 2346960 },
+            { name: 'Mobile Airqo 2', id: 2346964 },
+            { name: 'Mobile Airqo 3', id: 2346967 },
+            { name: 'Mobile Airqo 4', id: 2346969 },
+            { name: 'Mobile Airqo 5', id: 2346963 },
+            { name: 'Mobile Airqo 6', id: 2346968 },
+            { name: 'Mobile Airqo 7', id: 2346974 },
+            { name: 'Mobile Airqo 8', id: 2346988 },
+            { name: 'Mobile Airqo 09', id: 2346962 },
+            { name: 'Mobile Airqo 10', id: 2346978 },
+            { name: 'Mobile Airqo 11', id: 2346993 },
+            { name: 'Mobile Airqo 12', id: 2346999 },
+            { name: 'Mobile Airqo 13', id: 2346986 },
+            { name: 'Mobile Airqo 14', id: 2347051 },
+            { name: 'Mobile Airqo 15', id: 2347059 }
+        ];
+
+        var lastUpdateTimes = [];
+        var onlineChannels = 0;
+        var offlineChannels = 0;
+        var channelsProcessed = 0;
+
+
+
+function fetchLastUpdateTime(channel, callback) {
+    var apiEndpoint = 'https://api.thingspeak.com/channels/' + channel.id + '/feed.json';
+
+    $.get(apiEndpoint, { results: 1 }, function(data) {
+        if (data && data.feeds && data.feeds.length > 0) {
+            var lastUpdateTime = new Date(data.feeds[0].created_at);
+            lastUpdateTimes.push({ name: channel.name, time: lastUpdateTime });
+            onlineChannels++;
+        } else {
+            lastUpdateTimes.push(undefined);
+            offlineChannels++;
+        }
+
+        channelsProcessed++;
+
+        if (channelsProcessed === channels.length) {
+            callback();
+        }
+    });
+}
+
+
+channels.forEach(function(channel) {
+    fetchLastUpdateTime(channel, displayLastUpdateTime);
+});
+
+
+
+
+
+        function displayLastUpdateTime() {
+            lastUpdateTimes.forEach(function(updateInfo) {
+                if (updateInfo) {
+                    var channelName = updateInfo.name;
+                    var lastUpdateTime = updateInfo.time;
+                    var currentTime = new Date();
+                    
+                    var timeDifference = currentTime - lastUpdateTime;
+
+                    var minutesAgo = Math.floor(timeDifference / (1000 * 60));
+                    var hoursAgo = Math.floor(timeDifference / (1000 * 60 * 60));
+                    var daysAgo = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+
+                    var agoString = '';
+
+                    if (minutesAgo < 60) {
+                        agoString = minutesAgo + ' minute(s) ago';
+                    } else if (hoursAgo < 24) {
+                        agoString = hoursAgo + ' hour(s) ago';
+                    } else {
+                        agoString = daysAgo + ' day(s) ago';
+                    }
+
+                    // Highlight as red if more than 6 hours ago
+                    var cssClass = hoursAgo > 6 ? 'offline' : 'online';
+                    
+                    $('#lastUpdateTime').append('<span class="' + cssClass + '">' + channelName + ': ' + agoString + '</span><br>');
+                } else {
+                    $('#lastUpdateTime').append(channelName + ': No data available<br>');
+                }
+            });
+
+            // Display summary
+            $('#statusSummary').text('Online Channels: ' + onlineChannels + ', Offline Channels: ' + offlineChannels);
+        }
+
+
+
+
+
+
+
+        function displayLastUpdateTime() {
+    var channelName;
+    lastUpdateTimes.forEach(function(updateInfo) {
+        if (updateInfo) {
+            channelName = updateInfo.name;
+            var lastUpdateTime = updateInfo.time;
+            var currentTime = new Date();
+
+            var timeDifference = currentTime - lastUpdateTime;
+
+            var minutesAgo = Math.floor(timeDifference / (1000 * 60));
+            var hoursAgo = Math.floor(timeDifference / (1000 * 60 * 60));
+            var daysAgo = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+
+            var agoString = '';
+
+            if (minutesAgo < 60) {
+                agoString = minutesAgo + ' minute(s) ago';
+            } else if (hoursAgo < 24) {
+                agoString = hoursAgo + ' hour(s) ago';
+            } else {
+                agoString = daysAgo + ' day(s) ago';
+            }
+
+            // Highlight as red if more than 6 hours ago
+            var cssClass = hoursAgo > 6 ? 'offline' : 'online';
+
+            $('#lastUpdateTime').append('<span class="' + cssClass + '">' + channelName + ': ' + agoString + '</span><br>');
+        } else {
+            // If updateInfo is undefined, channelName is undefined too.
+            $('#lastUpdateTime').append('No data available for a channel<br>');
+        }
+    });
+
+    // Display summary
+    $('#statusSummary').text('Online Channels: ' + onlineChannels + ', Offline Channels: ' + offlineChannels);
+}
+
+
+
+
+        channels.forEach(function(channel) {
+            fetchLastUpdateTime(channel, displayLastUpdateTime);
+        });
+    </script>
+
+</body>
+</html>
