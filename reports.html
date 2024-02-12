@@ -1,716 +1,444 @@
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airqo Mobile</title>
-
-    <!-- Leaflet CSS and JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-
-    <!-- Plotly JS -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
-    <style>
-        body {
-            background-color: #111;
-            color: #b38787;
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        header {
-            background-color: #1a237e;
-            color: #fff;
-            padding: 10px;
-            text-align: center;
-        }
-
-        #contentBox {
-            height: 300px;
-            overflow-y: auto;
-        }
-
-        #buttonContainer,
-        #contentContainer {
-            background-color: #1a237e;
-            padding: 10px;
-            text-align: center;
-        }
-
-        .chartButton {
-            background-color: #283593;
-            color: #fff;
-            padding: 10px;
-            margin: 5px;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        .chartButton:hover {
-            background-color: #303f9f;
-        }
-
-        .channelContainer {
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            margin-bottom: 10px;
-            width: 100%;
-            display: flex;
-            flex-direction: row;
-            background-color: #111755;
-            padding: 10px;
-        }
-
-        .mapContainer,
-        .chartContainer {
-            height: 400px;
-            flex: 1;
-        }
-
-        #map {
-            height: 500px;
-            width: 1200px;
-        }
-
-        .chartContainer {
-            height: 400px;
-            flex: 1;
-            width: 48%;
-        }
-
-        /* ... Other existing styles ... */
-
-    </style>
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-
-</head>
-
-<body>
-
-    <header>
-        <h1>Mobile Units</h1>
-        <i class="fas fa-chart-line"></i>
-        <div id="dateTime"></div>
-    </header>
-
-    <!-- Content wrapped in a box with a vertical scrollbar -->
-    <div id="contentBox">
-        <div id="buttonContainer">
-
-
-        </div>
-
-        <div id="contentContainer">
-       
-
-
-
-
-
-
-
-        </div>
-
-
-     
- 
-
-        
-    </div>
-    <div id="buttonContainer">
-        <table>
-            <tr>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 1', 2346960)">Mobile Airqo 1</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 2', 2346964)">Mobile Airqo 2</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 3', 2346967)">Mobile Airqo 3</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 4', 2346969)">Mobile Airqo 4</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 5', 2346963)">Mobile Airqo 5</button></td>
-          
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 6', 2346968)">Mobile Airqo 6</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 7', 2346974)">Mobile Airqo 7</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 8', 2346988)">Mobile Airqo 8</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 09', 2346962)">Mobile Airqo 09</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 10', 2346978)">Mobile Airqo 10</button></td>
-       
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 11', 2346993)">Mobile Airqo 11</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 12', 2346999)">Mobile Airqo 12</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 13', 2346986)">Mobile Airqo 13</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 14', 2347051)">Mobile Airqo 14</button></td>
-                <td><button class="chartButton" onclick="plotChannelWithCustomDataPoints('Mobile Airqo 15', 2347059)">Mobile Airqo 15</button></td>
-            </tr>
-            <!-- Repeat the above structure for each row of buttons -->
-        </table>
-        
-        <input style="border-color: #f10f0f;" type="text" id="numDataPointsInput" placeholder="Enter number of data resolution" />
-    
-        <button style="color: #e21021;" onclick="closeCharts()">Close Charts</button>
-        <button onclick="plotAllPoints()">Map</button>
-
-    </div>
-    
-    <script>
-        function addChannel(channelName, channelID) {
-            const channelContainer = document.createElement('div');
-            channelContainer.classList.add('channelContainer');
-            channelContainer.id = 'channelContainer' + channelID;
-
-            document.getElementById('contentContainer').appendChild(channelContainer);
-
-            plotThingSpeakChart(channelName, channelID);
-        }
-
-
-
-
-
-
-
-
-
-        function plotChannelWithCustomDataPoints(channelName, channelID) {
-    // Get the value from the input element
-    const numDataPoints = document.getElementById('numDataPointsInput').value;
-
-    // Check if the value is a valid number
-    if (!isNaN(numDataPoints) && parseInt(numDataPoints) > 0) {
-        // Call plotThingSpeakChart with the custom number of data points
-        plotThingSpeakChart(channelName, channelID, parseInt(numDataPoints));
-    } else {
-        alert('Please enter a valid number of data points.');
-    }
-}
-
-
-
-
-
-
-function plotThingSpeakChart(channelName, channelID, numDataPoints = 10) {
-    fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?results=${numDataPoints}`)
-        .then(response => response.json())
-        .then(data => {
-            const timestamps = data.feeds.map(feed => new Date(feed.created_at).toLocaleString());
-            const field1Data = data.feeds.map(feed => parseFloat(feed.field1));
-            const field2Data = data.feeds.map(feed => parseFloat(feed.field2));
-            const field7Data = data.feeds.map(feed => parseFloat(feed.field7));
-            const coordinates = data.feeds.map(feed => [parseFloat(feed.field5), parseFloat(feed.field6)]);
-
-            if (timestamps.length > 0 && field1Data.every(value => !isNaN(value)) && field2Data.every(value => !isNaN(value))) {
-                const channelContainer = document.createElement('div');
-                channelContainer.classList.add('channelContainer');
-                channelContainer.id = 'channelContainer' + channelID;
-
-                document.getElementById('contentContainer').appendChild(channelContainer);
-
-                const mapContainer = document.createElement('div');
-                mapContainer.classList.add('mapContainer');
-                mapContainer.id = 'mapContainer' + channelID;
-                channelContainer.appendChild(mapContainer);
-
-                const map = L.map('mapContainer' + channelID).setView(coordinates[0], 13);
-
-                const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                });
-
-                const satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                    maxZoom: 20,
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                    attribution: '© Google contributors'
-                });
-
-                const baseMaps = {
-                    "Street Map": streetLayer,
-                    "Satellite Map": satelliteLayer
-                };
-
-                streetLayer.addTo(map);
-
-                L.control.layers(baseMaps).addTo(map);
-
-                coordinates.forEach((coord, index) => {
-                    if (!isNaN(coord[0]) && !isNaN(coord[1]) && coord[0] !== 0 && coord[1] !== 0) {
-                        const marker = L.marker(coord).addTo(map);
-
-                        // Embed channel name, field 1, and field 2 values in the marker popup
-                        const field1Value = field1Data[index];
-                        const field2Value = field2Data[index];
-                        const field7Value = field7Data[index];
-                        marker.bindPopup(`<b>${channelName}</b><br>Battery: ${field7Value}<br>Sensor one:${field1Value}<br>Sensor two:${field2Value}`).openPopup();
-                    }
-                });
-
-                const chartContainer = document.createElement('div');
-                chartContainer.classList.add('chartContainer');
-                chartContainer.id = 'chartContainer' + channelID;
-                channelContainer.appendChild(chartContainer);
-
-                // Data for the first chart (Battery voltage)
-                const chartData = [
-                    {
-                        x: timestamps,
-                        y: field7Data,
-                        type: 'line',
-                        name: 'Battery Voltage',
-                        marker: { color: 'red' }, // Change marker color to red
-                    },
-                ];
-
-                const layout = {
-                    title: `Chart for ${channelName} - Battery Voltage`,
-                    xaxis: { title: 'Date and Time' },
-                    yaxis: { title: 'Voltage' },
-                };
-
-                // Plot the first chart
-                Plotly.newPlot(chartContainer, chartData, layout);
-
-                // Create a new chart container for fields 1 and 2
-                const secondChartContainer = document.createElement('div');
-                secondChartContainer.classList.add('chartContainer');
-                secondChartContainer.id = 'secondChartContainer' + channelID;
-                channelContainer.appendChild(secondChartContainer);
-
-                // Data for the second chart (Fields 1 and 2)
-                const secondChartData = [
-                    {
-                        x: timestamps,
-                        y: field1Data,
-                        type: 'line',
-                        name: 'Field 1',
-                        marker: { color: 'green' },
-                    },
-                    {
-                        x: timestamps,
-                        y: field2Data,
-                        type: 'line',
-                        name: 'Field 2',
-                        marker: { color: 'orange' },
-                    },
-                ];
-
-                const secondChartLayout = {
-                    title: `Second Chart for ${channelName} - Fields 1 and 2`,
-                    xaxis: { title: 'Date and Time' },
-                    yaxis: { title: 'Field Value' },
-                };
-
-                // Plot the second chart with both Field 1 and Field 2
-                Plotly.newPlot(secondChartContainer, secondChartData, secondChartLayout);
-            } else {
-                console.log(`Invalid data for ${channelName}`);
-            }
-        })
-        .catch(error => console.error('Error fetching data:', error));
-}
-
-
-
-
-
-        function closeCharts() {
-            var contentContainer = document.getElementById('contentContainer');
-            while (contentContainer.firstChild) {
-                contentContainer.removeChild(contentContainer.firstChild);
-            }
-        }
-
-        function plotAllPoints() {
-            const leafletScript = document.createElement('script');
-            leafletScript.src = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js';
-            leafletScript.onload = () => {
-
-                const channelIDs = [
-                    2346960, 2346964, 2346967, 2346969, 2346963, 2346968,
-                    2346974, 2346988, 2346962, 2346978, 2346993, 2346999,
-                    2346986, 2347051, 2347059
-                ];
-
-                const channelNames = [
-                    'Mobile Airqo 1', 'Mobile Airqo 2', 'Mobile Airqo 3', 'Mobile Airqo 4',
-                    'Mobile Airqo 5', 'Mobile Airqo 6', 'Mobile Airqo 7', 'Mobile Airqo 8',
-                    'Mobile Airqo 09', 'Mobile Airqo 10', 'Mobile Airqo 11', 'Mobile Airqo 12',
-                    'Mobile Airqo 13', 'Mobile Airqo 14', 'Mobile Airqo 15'
-                ];
-
-                const promises = channelIDs.map((channelID, index) =>
-                    fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?results=1`)
-                        .then(response => response.json())
-                        .then(data => {
-                            const feed = data.feeds[0];
-                            return {
-                                coordinates: [parseFloat(feed.field5), parseFloat(feed.field6)],
-                                field7: parseFloat(feed.field7)
-                            };
-                        })
-                        .catch(error => {
-                            console.error(`Error fetching data for Channel ${index + 1}:`, error);
-                            return { coordinates: [0, 0], field7: NaN }; // Return default values in case of an error
-                        })
-                );
-
-                Promise.all(promises)
-                    .then(results => {
-                        if (results.every(result => !isNaN(result.coordinates[0]) && !isNaN(result.coordinates[1]))) {
-                            const mapContainer = document.createElement('div');
-                            mapContainer.classList.add('mapContainer');
-                            mapContainer.id = 'mapContainerAllPoints';
-                            document.getElementById('contentContainer').appendChild(mapContainer);
-
-                            const map = L.map('mapContainerAllPoints').setView(results[0].coordinates, 13);
-
-                            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                attribution: '© OpenStreetMap contributors'
-                            });
-
-                            const satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                                maxZoom: 20,
-                                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                                attribution: '© Google contributors'
-                            });
-
-                            const baseMaps = {
-                                "Street Map": streetLayer,
-                                "Satellite Map": satelliteLayer
-                            };
-
-                            streetLayer.addTo(map);
-
-                            L.control.layers(baseMaps).addTo(map);
-
-                            results.forEach((result, index) => {
-                                const { coordinates, field7 } = result;
-                                const channelName = channelNames[index];
-
-                                if (!isNaN(coordinates[0]) && !isNaN(coordinates[1]) && coordinates[0] !== 0 && coordinates[1] !== 0) {
-                                    const marker = L.marker(coordinates).addTo(map);
-
-                                    // Embed channel name and field 7 value in the marker popup
-                                    marker.bindPopup(`<b>${channelName}</b><br>Field 7: ${isNaN(field7) ? 'Unknown' : field7}`).openPopup();
-                                }
-                            });
-                        } else {
-                            console.log('Invalid coordinates for plotting all points');
-                        }
-                    })
-                    .catch(error => console.error('Error fetching data for plotting all points:', error));
-            };
-
-            document.head.appendChild(leafletScript);
-        }
-    </script>
-
-
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPS Routes from ThingSpeak Channels</title>
+  <!-- Include Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Add Plotly library -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- Add turf.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.3.0/turf.min.js"></script>
+  <!-- Add Font Awesome for icons -->
+  <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+  <!-- Add some basic styling -->
+  <style>
     body {
-        background-color: #111;
-        color: #b38787;
-        font-family: 'Arial', sans-serif;
-        margin: 0;
-        padding: 0;
+      background-color: #f2f2f2;
+      color: #333;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
     }
-
     header {
-        background-color: #1a237e;
-        color: #fff;
-        padding: 10px;
-        text-align: center;
+      background-color: #1a237e;
+      color: #fff;
+      padding: 10px;
+      text-align: center;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 1000;
     }
-
-    #contentBox {
-        height: 500px;
-        overflow-y: auto;
+    header h1 {
+      display: inline;
+      margin-right: 10px;
     }
-
-    #buttonContainer,
-    #contentContainer {
-        background-color: #1a237e;
-        padding: 10px;
-        text-align: center;
+    header i {
+      font-size: 24px;
     }
-
-    .chartButton {
-        background-color: #283593;
-        color: #fff;
-        padding: 10px;
-        margin: 5px;
-        border: none;
-        cursor: pointer;
-        border-radius: 5px;
+    #container {
+      border: 1px solid #ccc;
+      padding: 10px;
+      max-width: 1200px;
+      margin: 80px auto 20px;
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
-
-    .chartButton:hover {
-        background-color: #303f9f;
-    }
-
-    .channelContainer {
-        box-sizing: border-box;
-        border: 1px solid #ccc;
-        margin-bottom: 10px;
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        background-color: #111755;
-        padding: 10px;
-    }
-
-    .mapContainer,
-    .chartContainer {
-        height: 400px;
-        flex: 1;
-    }
-
     #map {
-        height: 500px;
-        width: 200px;
+      height: 400px;
+      margin-bottom: 20px;
     }
-
-    .chartContainer {
-        height: 400px;
-        flex: 1;
-        width: 48%;
+    #channelListContainer {
+      max-height: 300px;
+      overflow-y: auto;
     }
-
-    /* ... Other existing styles ... */
-
-</style>
-
-
-    <!-- Your external links and other content... -->
-
-    
-
-</body>
-
-</html>
-
-
-<!DOCTYPE html>
-<html lang="en">
-
-
-
-
-<head>
-    <style>
-        body {
-            margin: 0; /* Remove default margin */
-        }
-
-        .container {
-            display: flex;
-            flex-wrap: nowrap; /* Prevent wrapping to the next line */
-            text-align: left;
-            box-sizing: border-box;
-            width: 100%; /* Full width of the viewport */
-            margin: 20px 0; /* Add some margin at the top and bottom */
-        }
-
-        .channel-status {
-            font-size: 18px;
-            margin-top: 20px;
-        }
-
-        canvas {
-            flex: 1; /* Occupy remaining space */
-            height: auto;
-            max-width: 70%; /* Limit canvas width */
-        }
-
-        .list-container {
-            max-height: 150px;
-            overflow-y: auto;
-            margin-top: 10px;
-            width: 30%; /* Adjust the width as needed */
-            box-sizing: border-box;
-        }
-
-        .pie-chart-container {
-            width: 15%;
-            padding: 2px;
-            box-sizing: border-box;
-        }
-
-        .online {
-            color: blue;
-        }
-
-        .offline {
-            color: red;
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .load-button {
+      cursor: pointer;
+      background-color: #1a237e;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+    }
+    .load-button:hover {
+      background-color: #0d47a1;
+    }
+    .highlighted {
+      background-color: #e3f2fd !important;
+    }
+    #output {
+      margin-top: 20px;
+    }
+    label {
+      margin-right: 10px;
+    }
+    button {
+      margin-right: 10px;
+      cursor: pointer;
+      padding: 8px 20px;
+      border: none;
+      background-color: #1a237e;
+      color: #fff;
+      border-radius: 3px;
+    }
+    button:hover {
+      background-color: #0d47a1;
+    }
+  </style>
 </head>
-
-
-
-
-
-
-
-
 <body>
+  <!-- Fixed header -->
+  <header>
+    <h1>Mobile Units</h1>
+    <i class="fas fa-chart-line"></i>
+    <div id="dateTime"></div>
+  </header>
+  <!-- Main container -->
+  <div id="container">
+    <!-- Create a div to hold the map -->
+    <div id="map"></div>
 
-<div class="container">
-    <h1>Status</h1>
+    <!-- Create a scrollable box container for the channel list -->
+    <div id="channelListContainer">
+      <table id="channelTable">
+        <tr>
+          <th>Channel Name</th>
+          <th>Channel ID</th>
+          <th>Action</th>
+          <th>Last Seen</th> 
+        </tr>
+        <tr>
+          <td>Mobile Airqo 1</td>
+          <td>2346960</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 1', 2346960)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 2</td>
+          <td>2346964</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 2', 2346964)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 3</td>
+          <td>2346967</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 3', 2346967)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 4</td>
+          <td>2346969</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 4', 2346969)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 5</td>
+          <td>2346963</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 5', 2346963)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 6</td>
+          <td>2346968</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 6', 2346968)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 7</td>
+          <td>2346974</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 7', 2346974)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 8</td>
+          <td>2346988</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 8', 2346988)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 09</td>
+          <td>2346962</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 09', 2346962)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 10</td>
+          <td>2422547</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 10', 2422547)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 11</td>
+          <td>2346993</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 11', 2346993)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 12</td>
+          <td>2346999</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 12', 2346999)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 13</td>
+          <td>2346986</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 13', 2346986)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 14</td>
+          <td>2347051</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 14', 2347051)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+        <tr>
+          <td>Mobile Airqo 15</td>
+          <td>2347059</td>
+          <td><button class="load-button" onclick="loadCharts('Mobile Airqo 15', 2347059)">Load Charts</button></td>
+          <td id="lastSeenCell_${channelID}"></td>
+        </tr>
+      </table>
+    </div>
 
-    <!-- Add a single div container for the list with a scroller -->
-    <div class="list-container" id="status-list-container"></div>
+    <!-- Create input field for the number of datasets -->
+    <label for="numDatasets">Number of Datasets:</label>
+    <input type="number" id="numDatasets" name="numDatasets" value="2" min="1">
 
-    <!-- Display count -->
-    <div id="status-count" class="channel-status"></div>
-</div>
+    <!-- Options for plotting -->
+    <div>
+      <input type="radio" id="plotMarker" name="plotOption" value="marker" checked>
+      <label for="plotMarker">Plot Single Marker</label>
+      <input type="radio" id="plotLine" name="plotOption" value="line">
+      <label for="plotLine">Trace Line</label>
+    </div>
 
-<!-- Add a separate container for the pie chart next to the other content -->
-<div class="pie-chart-container">
-    <canvas id="pie-chart"></canvas>
-</div>
+    <!-- Create buttons to plot all channels and close charts -->
+    <button onclick="plotAllChannels()">Plot All Channels</button>
+    <button onclick="closeCharts()">Close Charts</button>
 
-<script>
-    // Updated list of channel names and IDs
-    const channels = [
-        { name: 'Mobile Airqo 1', id: 2346960 },
-        { name: 'Mobile Airqo 2', id: 2346964 },
-        { name: 'Mobile Airqo 3', id: 2346967 },
-        { name: 'Mobile Airqo 4', id: 2346969 },
-        { name: 'Mobile Airqo 5', id: 2346963 },
-        { name: 'Mobile Airqo 6', id: 2346968 },
-        { name: 'Mobile Airqo 7', id: 2346974 },
-        { name: 'Mobile Airqo 8', id: 2346988 },
-        { name: 'Mobile Airqo 09', id: 2346962 },
-        { name: 'Mobile Airqo 10', id: 2346978 },
-        { name: 'Mobile Airqo 11', id: 2346993 },
-        { name: 'Mobile Airqo 12', id: 2346999 },
-        { name: 'Mobile Airqo 13', id: 2346986 },
-        { name: 'Mobile Airqo 14', id: 2347051 },
-        { name: 'Mobile Airqo 15', id: 2347059 }
-    ];
+    <!-- Output section for displaying distances -->
+    <div id="output"></div>
 
-    let onlineCount = 0;
-    let offlineCount = 0;
-    const onlineChannels = [];
-    const offlineChannels = [];
+  <!-- Include Leaflet JavaScript -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    var currentPolylines = []; // Keep track of polylines for each channel
+    var currentMarkers = []; // Keep track of markers for each channel
 
-    // Function to check the status of each channel
-    async function checkChannelStatus(channel) {
-        try {
-            const response = await fetch(`https://api.thingspeak.com/channels/${channel.id}/feeds.json?results=1`);
-            const data = await response.json();
+    // Function to fetch and plot GPS data for a specific channel
+  // Function to fetch and plot GPS data for a specific channel
 
-            if (data.feeds.length > 0) {
-                const lastEntryTime = new Date(data.feeds[0].created_at);
-                const currentTime = new Date();
+// Function to fetch and plot GPS data for a specific channel
+// Function to fetch and plot GPS data for a specific channel
+// Function to fetch and plot GPS data for a specific channel
+function fetchAndPlotData(deviceName, channelID, color, numDatasets, plotOption) {
+  var url = 'https://api.thingspeak.com/channels/' + channelID + '/feeds.json?results=' + numDatasets;
 
-                // Calculate time difference
-                const timeDifference = currentTime - lastEntryTime;
-                const minutes = Math.floor(timeDifference / (1000 * 60));
-                const hours = Math.floor(timeDifference / (1000 * 60 * 60));
-                const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
-                const weeks = Math.floor(timeDifference / (1000 * 60 * 60 * 24 * 7));
-                const months = Math.floor(timeDifference / (1000 * 60 * 60 * 24 * 30));
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      var timestamps = [];
+      var field1Data = [];
+      var field2Data = [];
+      var field7Data = [];
+      var totalDistance = 0; // Initialize total distance
 
-                let lastPosted;
-                if (months > 0) {
-                    lastPosted = months === 1 ? '1 month ago' : `${months} months ago`;
-                } else if (weeks > 0) {
-                    lastPosted = weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
-                } else if (days > 0) {
-                    lastPosted = days === 1 ? '1 day ago' : `${days} days ago`;
-                } else if (hours > 0) {
-                    lastPosted = hours === 1 ? '1 hour ago' : `${hours} hours ago`;
-                } else {
-                    lastPosted = minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
-                }
+      data.feeds.forEach(feed => {
+        timestamps.push(feed.created_at);
+        field1Data.push(feed.field1);
+        field2Data.push(feed.field2);
+        field7Data.push(feed.field7);
 
-                // Assuming the channel is online if it has been updated in the last 10 minutes
-                const isOnline = timeDifference < (10 * 60 * 1000);
+        // Plot points on the map
+        const lat = parseFloat(feed.field5);
+        const lng = parseFloat(feed.field6);
+        const marker = L.marker([lat, lng]).addTo(map);
+        marker.bindPopup(deviceName);
+        currentMarkers.push(marker);
+      });
 
-                if (isOnline) {
-                    onlineCount++;
-                    onlineChannels.push({ channelName: channel.name, status: 'Online', lastPosted });
-                } else {
-                    offlineCount++;
-                    offlineChannels.push({ channelName: channel.name, status: 'Offline', lastPosted });
-                }
+      var plotData;
+      if (plotOption === 'line') {
+        plotData = [{
+          lat: data.feeds.map(feed => parseFloat(feed.field5)),
+          lon: data.feeds.map(feed => parseFloat(feed.field6)),
+          type: 'scattermapbox',
+          mode: 'lines',
+          line: {
+            color: color,
+          },
+          name: 'Trace Line'
+        }];
+      } else {
+        plotData = [{
+          x: timestamps,
+          y: field1Data,
+          type: 'scatter',
+          name: 'Field 1'
+        }, {
+          x: timestamps,
+          y: field2Data,
+          type: 'scatter',
+          name: 'Field 2'
+        }, {
+          x: timestamps,
+          y: field7Data,
+          type: 'scatter',
+          name: 'Field 7'
+        }];
+      }
 
-                return { status: isOnline ? 'Online' : 'Offline', channelName: channel.name, lastPosted };
-            }
-        } catch (error) {
-            console.error('Error fetching data:', error);
-        }
+      var layout = {
+        title: deviceName + ' Data',
+        xaxis: {
+          title: 'Timestamp'
+        },
+        yaxis: {
+          title: 'Value'
+        },
+        // Enable hover interactions
+        hovermode: 'closest',
+        // Add modebar buttons to display
+        displayModeBar: true
+      };
 
-        offlineCount++;
-        offlineChannels.push({ channelName: channel.name, status: 'Error', lastPosted: 'N/A' });
-        return { status: 'Error', channelName: channel.name, lastPosted: 'N/A' };
+      Plotly.newPlot('output', plotData, layout);
+
+      // Calculate distance and add it to total
+      for (let i = 1; i < data.feeds.length; i++) {
+        const from = [parseFloat(data.feeds[i - 1].field5), parseFloat(data.feeds[i - 1].field6)];
+        const to = [parseFloat(data.feeds[i].field5), parseFloat(data.feeds[i].field6)];
+        totalDistance += turf.distance(turf.point(from), turf.point(to), { units: 'kilometers' });
+      }
+
+      document.getElementById('output').innerHTML += '<p>Total distance traveled: ' + totalDistance.toFixed(2) + ' kilometers</p>';
+    })
+    .catch(error => console.error('Error fetching data for channel:', error));
+}
+
+
+    // Function to load the charts for a specific channel
+// Function to load the charts for a specific channel
+function loadCharts(deviceName, channelID) {
+  // Clear previous output, polylines, and markers
+  document.getElementById('output').innerHTML = '';
+  currentPolylines.forEach(polyline => {
+    map.removeLayer(polyline);
+  });
+  currentPolylines = [];
+  currentMarkers.forEach(marker => {
+    map.removeLayer(marker);
+  });
+  currentMarkers = [];
+
+  // Remove highlighting from previously selected row
+  var table = document.getElementById('channelTable');
+  var rows = table.getElementsByTagName('tr');
+  for (var i = 1; i < rows.length; i++) {
+    rows[i].classList.remove('highlighted');
+  }
+
+  // Highlight the selected row
+  var selectedRow;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i].getElementsByTagName('td')[1].innerText == channelID) {
+      selectedRow = rows[i];
+      break;
+    }
+  }
+  selectedRow.classList.add('highlighted');
+
+  var numDatasets = parseInt(document.getElementById('numDatasets').value);
+  var plotOption = document.querySelector('input[name="plotOption"]:checked').value;
+
+  fetchAndPlotData(deviceName, channelID, getRandomColor(), numDatasets, plotOption);
+}
+
+
+    // Function to plot all channels
+    function plotAllChannels() {
+      var table = document.getElementById('channelTable');
+      var rows = table.getElementsByTagName('tr');
+      for (var i = 1; i < rows.length; i++) {
+        var deviceName = rows[i].getElementsByTagName('td')[0].innerText;
+        var channelID = rows[i].getElementsByTagName('td')[1].innerText;
+        loadCharts(deviceName, channelID);
+      }
     }
 
-    // Function to update the status container, count, list, and pie chart
-    async function updateStatusContainer() {
-        const statusListContainer = document.getElementById('status-list-container');
-        const statusCount = document.getElementById('status-count');
-        const pieChartCanvas = document.getElementById('pie-chart');
-
-        onlineCount = 0;
-        offlineCount = 0;
-        onlineChannels.length = 0;
-        offlineChannels.length = 0;
-
-        const statusPromises = channels.map(checkChannelStatus);
-        const statuses = await Promise.all(statusPromises);
-
-        // Update the list container with a scroller
-        statusListContainer.innerHTML = statuses.map(status => `<div class="${status.status.toLowerCase()}">${status.channelName}: ${status.status} (${status.lastPosted})</div>`).join('');
-
-        // Update count
-        statusCount.innerHTML = `Online: ${onlineCount} | Offline: ${offlineCount}`;
-
-        // Update or create the pie chart
-        updatePieChart(pieChartCanvas);
+    // Function to close the charts
+    function closeCharts() {
+      // Clear previous output, polylines, and markers
+      document.getElementById('output').innerHTML = '';
+      currentPolylines.forEach(polyline => {
+        map.removeLayer(polyline);
+      });
+      currentPolylines = [];
+      currentMarkers.forEach(marker => {
+        map.removeLayer(marker);
+      });
+      currentMarkers = [];
     }
 
-    // Function to update the pie chart
-    function updatePieChart(canvas) {
-        const ctx = canvas.getContext('2d');
-        const data = {
-            labels: ['Online', 'Offline'],
-            datasets: [{
-                data: [onlineCount, offlineCount],
-                backgroundColor: ['#36A2EB', '#FF6384'],
-                hoverBackgroundColor: ['#36A2EB', '#FF6384']
-            }]
-        };
-
-        const options = {
-            responsive: false, // Disable responsiveness
-            maintainAspectRatio: false
-        };
-
-        // Destroy the existing chart if it exists
-        if (window.myPieChart) {
-            window.myPieChart.destroy();
-        }
-
-        // Create a new pie chart
-        window.myPieChart = new Chart(ctx, {
-            type: 'pie',
-            data: data,
-            options: options
-        });
+    // Generate random color
+    function getRandomColor() {
+      var letters = '0123456789ABCDEF';
+      var color = '#';
+      for (var i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
     }
 
-    // Initial update and refresh every 5 minutes
-    updateStatusContainer();
-    setInterval(updateStatusContainer, 5 * 60 * 1000);
-</script>
+    // Initialize Leaflet map
+    var map = L.map('map').setView([0, 0], 2); // set initial coordinates and zoom level
 
+    // Add OpenStreetMap street tile layer
+    var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.opght">OpenSesseme</a> contributors'
+    }).addTo(map);
+
+    // Add OpenStreetMap satellite tile layer
+    var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; <a href="https://www.esri.com/">Esri</a>, Imagery &copy; <a href="https://www.mapbox.com/">Mapbox</a>'
+    });
+
+    // Add Leaflet control for map view toggle
+    var toggleButton = L.control({ position: 'topright' });
+    toggleButton.onAdd = function (map) {
+      var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+      div.innerHTML = '<button onclick="toggleMapView()">Toggle View</button>';
+      return div;
+    };
+    toggleButton.addTo(map);
+
+    // Bind markers to zoom events
+    map.on('zoomend', function() {
+      currentMarkers.forEach(marker => {
+        marker.setLatLng(marker.getLatLng());
+      });
+    });
+    setInterval(updateClock, 1000);
+
+   
+
+
+  </script>
 </body>
 </html>
 
